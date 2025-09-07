@@ -1,9 +1,16 @@
+/*
+
+本模块用来将cnf文件解析到数据结构中
+
+*/
+
 #include "formula.h"
 
+//读取cnf文件
 Formula* parse_cnf(const char* filename) {
     FILE* file = fopen(filename, "r");
     if (!file) {
-        printf("Error: Cannot open file %s\n", filename);
+        printf("打开文件“ %s ”失败\n", filename);
         return NULL;
     }
     
@@ -61,7 +68,7 @@ Formula* parse_cnf(const char* filename) {
     fclose(file);
     return formula;
 }
-
+//formula初始化
 Formula* create_formula(int var_count) {
     Formula* formula = (Formula*)malloc(sizeof(Formula));
     formula->var_count = var_count;
@@ -79,7 +86,7 @@ Formula* create_formula(int var_count) {
     
     return formula;
 }
-
+//删除formula
 void destroy_formula(Formula* formula) {
     if (!formula) return;
     
@@ -101,7 +108,7 @@ void destroy_formula(Formula* formula) {
     
     free(formula);
 }
-
+//初始化子句
 Clause* create_clause() {
     Clause* clause = (Clause*)malloc(sizeof(Clause));
     clause->literals = NULL;
@@ -110,13 +117,13 @@ Clause* create_clause() {
     clause->next = NULL;
     return clause;
 }
-
+//添加文字
 void add_literal(Clause* clause, Literal literal) {
     clause->length++;
     clause->literals = (Literal*)realloc(clause->literals, clause->length * sizeof(Literal));
     clause->literals[clause->length - 1] = literal;
 }
-
+//添加子句
 void add_clause(Formula* formula, Clause* clause) {
     formula->clause_count++;
     clause->next = formula->clauses;

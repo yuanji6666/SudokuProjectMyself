@@ -1,4 +1,55 @@
 #include "formula.h"
+/*
+本模块实现sat问题的解决
+*/
+
+// DPLL主算法
+int dpll(Formula* formula) {
+    // 单子句传播
+    if (!unit_propagation(formula)) {
+        return 0; // 冲突
+    }
+    
+    // 检查是否所有子句都已满足
+    int all_satisfied = 1;
+    Clause* current = formula->clauses;
+    while (current != NULL) {
+        if (!current->marked) {
+            all_satisfied = 0;
+            break;
+        }
+        current = current->next;
+    }
+    
+    if (all_satisfied) {
+        return 1; // 可满足
+    }
+    
+    // 选择分支变量
+    int var = choose_branch_variable(formula);
+    if (var == 0) {
+        return 0; // 没有未赋值的变量
+    }
+    
+    // 保存当前状态
+    FormulaState* state = save_formula_state(formula);
+    
+    // 尝试正文字分支
+    if (assign_literal(formula, var) && dpll(formula)) {
+        free_formula_state(state);
+        return 1;
+    }
+    
+    // 回溯
+    restore_formula_state(formula, state);
+    free_formula_state(state);
+    
+    // 尝试负文字分支
+    return assign_literal(formula, -var) && dpll(formula);
+}
+
+
+
 int unit_propagation(Formula* formula) {
     int changed;
     do {
@@ -72,6 +123,8 @@ FormulaState* save_formula_state(Formula* formula) {
     return state;
 }
 
+
+
 void restore_formula_state(Formula* formula, FormulaState* state) {
     // 恢复赋值
     memcpy(formula->assignment, state->assignment, (formula->var_count + 1) * sizeof(int));
@@ -85,11 +138,16 @@ void restore_formula_state(Formula* formula, FormulaState* state) {
     }
 }
 
+
+
 void free_formula_state(FormulaState* state) {
     free(state->assignment);
     free(state->marked);
     free(state);
 }
+
+
+
 // 单子句传播
 int has_unit_clause(Formula* formula) {
     Clause* current = formula->clauses;
@@ -252,47 +310,3 @@ int choose_branch_variable(Formula* formula) {
     return best_var;
 }
 
-// DPLL主算法
-int dpll(Formula* formula) {
-    // 单子句传播
-    if (!unit_propagation(formula)) {
-        return 0; // 冲突
-    }
-    
-    // 检查是否所有子句都已满足
-    int all_satisfied = 1;
-    Clause* current = formula->clauses;
-    while (current != NULL) {
-        if (!current->marked) {
-            all_satisfied = 0;
-            break;
-        }
-        current = current->next;
-    }
-    
-    if (all_satisfied) {
-        return 1; // 可满足
-    }
-    
-    // 选择分支变量
-    int var = choose_branch_variable(formula);
-    if (var == 0) {
-        return 0; // 没有未赋值的变量
-    }
-    
-    // 保存当前状态
-    FormulaState* state = save_formula_state(formula);
-    
-    // 尝试正文字分支
-    if (assign_literal(formula, var) && dpll(formula)) {
-        free_formula_state(state);
-        return 1;
-    }
-    
-    // 回溯
-    restore_formula_state(formula, state);
-    free_formula_state(state);
-    
-    // 尝试负文字分支
-    return assign_literal(formula, -var) && dpll(formula);
-}

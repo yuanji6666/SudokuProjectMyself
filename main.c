@@ -1,32 +1,5 @@
 #include "formula.h"
 
-void save_result(const char* filename, int result, Formula* formula, double time_ms) {
-    char res_filename[256];
-    strcpy(res_filename, filename);
-    char* dot = strrchr(res_filename, '.');
-    if (dot) *dot = '\0';
-    strcat(res_filename, ".res");
-    
-    FILE* file = fopen(res_filename, "w");
-    if (!file) {
-        printf("Error: Cannot create result file %s\n", res_filename);
-        return;
-    }
-    
-    fprintf(file, "s %d\n", result);
-    if (result == 1) {
-        fprintf(file, "v ");
-        for (int i = 1; i <= formula->var_count; i++) {
-            fprintf(file, "%d ", formula->assignment[i] > 0 ? i : -i);
-        }
-        fprintf(file, "\n");
-    }
-    fprintf(file, "t %.2f\n", time_ms);
-    
-    fclose(file);
-    printf("Result saved to %s\n", res_filename);
-}
-
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         printf("Usage: %s <mode> [options]\n", argv[0]);
@@ -113,4 +86,31 @@ int main(int argc, char* argv[]) {
     }
     
     return 0;
+}
+
+void save_result(const char* filename, int result, Formula* formula, double time_ms) {
+    char res_filename[256];
+    strcpy(res_filename, filename);
+    char* dot = strrchr(res_filename, '.');
+    if (dot) *dot = '\0';
+    strcat(res_filename, ".res");
+    
+    FILE* file = fopen(res_filename, "w");
+    if (!file) {
+        printf("Error: Cannot create result file %s\n", res_filename);
+        return;
+    }
+    
+    fprintf(file, "s %d\n", result);
+    if (result == 1) {
+        fprintf(file, "v ");
+        for (int i = 1; i <= formula->var_count; i++) {
+            fprintf(file, "%d ", formula->assignment[i] > 0 ? i : -i);
+        }
+        fprintf(file, "\n");
+    }
+    fprintf(file, "t %.2f\n", time_ms);
+    
+    fclose(file);
+    printf("Result saved to %s\n", res_filename);
 }

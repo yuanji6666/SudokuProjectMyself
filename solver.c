@@ -48,14 +48,11 @@ int dpll(Formula* formula) {
     return assign_literal(formula, -var) && dpll(formula);
 }
 
-
-
 int unit_propagation(Formula* formula) {
     int changed;
     do {
         changed = 0;
-        Clause* current = formula->clauses;
-        
+        Clause* current = formula->clauses;//指向当前子句
         while (current != NULL) {
             if (!current->marked) {
                 int unassigned_count = 0;
@@ -96,6 +93,31 @@ int unit_propagation(Formula* formula) {
     return 1;
 }
 
+int has_empty_clause(Formula* formula) {
+    Clause* current = formula->clauses;
+    while (current != NULL) {
+        if (!current->marked) {
+            int all_false = 1;
+            
+            for (int i = 0; i < current->length; i++) {
+                Literal lit = current->literals[i];
+                int var = abs(lit);
+                int sign = lit > 0 ? 1 : -1;
+                
+                if (formula->assignment[var] != -sign) {
+                    all_false = 0;
+                    break;
+                }
+            }
+            
+            if (all_false) {
+                return 1;
+            }
+        }
+        current = current->next;
+    }
+    return 0;
+}
 
 FormulaState* save_formula_state(Formula* formula) {
     FormulaState* state = (FormulaState*)malloc(sizeof(FormulaState));
@@ -123,8 +145,6 @@ FormulaState* save_formula_state(Formula* formula) {
     return state;
 }
 
-
-
 void restore_formula_state(Formula* formula, FormulaState* state) {
     // 恢复赋值
     memcpy(formula->assignment, state->assignment, (formula->var_count + 1) * sizeof(int));
@@ -138,17 +158,12 @@ void restore_formula_state(Formula* formula, FormulaState* state) {
     }
 }
 
-
-
 void free_formula_state(FormulaState* state) {
     free(state->assignment);
     free(state->marked);
     free(state);
 }
 
-
-
-// 单子句传播
 int has_unit_clause(Formula* formula) {
     Clause* current = formula->clauses;
     while (current != NULL) {
@@ -262,31 +277,6 @@ int is_empty_formula(Formula* formula) {
     return 1;
 }
 
-int has_empty_clause(Formula* formula) {
-    Clause* current = formula->clauses;
-    while (current != NULL) {
-        if (!current->marked) {
-            int all_false = 1;
-            
-            for (int i = 0; i < current->length; i++) {
-                Literal lit = current->literals[i];
-                int var = abs(lit);
-                int sign = lit > 0 ? 1 : -1;
-                
-                if (formula->assignment[var] != -sign) {
-                    all_false = 0;
-                    break;
-                }
-            }
-            
-            if (all_false) {
-                return 1;
-            }
-        }
-        current = current->next;
-    }
-    return 0;
-}
 
 // VSIDS分支策略
 int choose_branch_variable(Formula* formula) {

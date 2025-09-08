@@ -44,7 +44,6 @@ typedef struct {
 FormulaState* save_formula_state(Formula* formula);
 
 void restore_formula_state(Formula* formula, FormulaState* state);
-
 void free_formula_state(FormulaState* state);
 
 // 函数声明

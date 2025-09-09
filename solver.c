@@ -48,21 +48,23 @@ int dpll(Formula* formula) {
     return assign_literal(formula, -var) && dpll(formula);
 }
 
+//单子句传播函数
 int unit_propagation(Formula* formula) {
     int changed;
     do {
         changed = 0;
         Clause* current = formula->clauses;//指向当前子句
         while (current != NULL) {
+            //只遍历未满足的
             if (!current->marked) {
-                int unassigned_count = 0;
-                Literal unit_literal = 0;
-                int satisfied = 0;
+                int unassigned_count = 0;//未赋值文字的数量
+                Literal unit_literal = 0;//单子句中的文字
+                int satisfied = 0;//子句是否满足的标志变量
                 
                 for (int i = 0; i < current->length; i++) {
-                    Literal lit = current->literals[i];
-                    int var = abs(lit);
-                    int sign = (lit > 0) ? 1 : -1;
+                    Literal lit = current->literals[i];//存储文字
+                    int var = abs(lit);//存储变量名
+                    int sign = (lit > 0) ? 1 : -1;//存储赋值
                     
                     if (formula->assignment[var] == 0) {
                         unassigned_count++;
@@ -71,7 +73,7 @@ int unit_propagation(Formula* formula) {
                         satisfied = 1;
                         break;
                     }
-                }
+                }//遍历子句中每一个文字
                 
                 if (satisfied) {
                     current->marked = 1;
@@ -87,38 +89,51 @@ int unit_propagation(Formula* formula) {
                 }
             }
             current = current->next;
-        }
-    } while (changed);
+        }//依次遍历每一个子句
+    } while (changed);//每次变化之后从第一个子句重新开始寻找单子句传播
     
     return 1;
 }
 
-int has_empty_clause(Formula* formula) {
-    Clause* current = formula->clauses;
-    while (current != NULL) {
-        if (!current->marked) {
-            int all_false = 1;
-            
-            for (int i = 0; i < current->length; i++) {
-                Literal lit = current->literals[i];
-                int var = abs(lit);
-                int sign = lit > 0 ? 1 : -1;
-                
-                if (formula->assignment[var] != -sign) {
-                    all_false = 0;
-                    break;
-                }
-            }
-            
-            if (all_false) {
-                return 1;
-            }
-        }
-        current = current->next;
+//单子句中的单个文字赋值函数
+int assign_literal(Formula* formula, Literal literal) {
+    int var = abs(literal);
+    int value = (literal > 0) ? 1 : -1;
+    
+    // 检查是否与现有赋值冲突
+    if (formula->assignment[var] != 0 && formula->assignment[var] != value) {
+        return 0; // 冲突
     }
-    return 0;
+    
+    formula->assignment[var] = value;
+    formula->activity[var] += 1.0; // 更新VSIDS活动度
+    
+    return 1;
 }
 
+// VSIDS分支策略
+int choose_branch_variable(Formula* formula) {
+    double max_score = -1;
+    int best_var = 0;
+    
+    for (int i = 1; i <= formula->var_count; i++) {
+        if (formula->assignment[i] == 0) { // 未赋值的变元
+            if (formula->activity[i] > max_score) {
+                max_score = formula->activity[i];
+                best_var = i;
+            }
+        }
+    }//找到活动度最大的变元
+    
+    // 衰减活动度
+    for (int i = 1; i <= formula->var_count; i++) {
+        formula->activity[i] *= 0.95;
+    }
+    
+    return best_var;
+}
+
+//保存状态
 FormulaState* save_formula_state(Formula* formula) {
     FormulaState* state = (FormulaState*)malloc(sizeof(FormulaState));
     
@@ -145,6 +160,14 @@ FormulaState* save_formula_state(Formula* formula) {
     return state;
 }
 
+//释放状态
+void free_formula_state(FormulaState* state) {
+    free(state->assignment);
+    free(state->marked);
+    free(state);
+}
+
+//恢复状态
 void restore_formula_state(Formula* formula, FormulaState* state) {
     // 恢复赋值
     memcpy(formula->assignment, state->assignment, (formula->var_count + 1) * sizeof(int));
@@ -156,147 +179,5 @@ void restore_formula_state(Formula* formula, FormulaState* state) {
         current->marked = state->marked[i++];
         current = current->next;
     }
-}
-
-void free_formula_state(FormulaState* state) {
-    free(state->assignment);
-    free(state->marked);
-    free(state);
-}
-
-int has_unit_clause(Formula* formula) {
-    Clause* current = formula->clauses;
-    while (current != NULL) {
-        if (!current->marked) {
-            int unassigned_count = 0;
-            Literal unit_literal = 0;
-            
-            for (int i = 0; i < current->length; i++) {
-                Literal lit = current->literals[i];
-                int var = abs(lit);
-                int sign = lit > 0 ? 1 : -1;
-                
-                if (formula->assignment[var] == 0) {
-                    unassigned_count++;
-                    unit_literal = lit;
-                } else if (formula->assignment[var] == sign) {
-                    // 子句已满足
-                    unassigned_count = 0;
-                    break;
-                }
-            }
-            
-            if (unassigned_count == 1) {
-                return 1;
-            }
-        }
-        current = current->next;
-    }
-    return 0;
-}
-
-Literal find_unit_clause(Formula* formula) {
-    Clause* current = formula->clauses;
-    while (current != NULL) {
-        if (!current->marked) {
-            int unassigned_count = 0;
-            Literal unit_literal = 0;
-            
-            for (int i = 0; i < current->length; i++) {
-                Literal lit = current->literals[i];
-                int var = abs(lit);
-                int sign = lit > 0 ? 1 : -1;
-                
-                if (formula->assignment[var] == 0) {
-                    unassigned_count++;
-                    unit_literal = lit;
-                } else if (formula->assignment[var] == sign) {
-                    // 子句已满足
-                    unassigned_count = 0;
-                    break;
-                }
-            }
-            
-            if (unassigned_count == 1) {
-                return unit_literal;
-            }
-        }
-        current = current->next;
-    }
-    return 0;
-}
-
-int assign_literal(Formula* formula, Literal literal) {
-    int var = abs(literal);
-    int value = (literal > 0) ? 1 : -1;
-    
-    // 检查是否与现有赋值冲突
-    if (formula->assignment[var] != 0 && formula->assignment[var] != value) {
-        return 0; // 冲突
-    }
-    
-    formula->assignment[var] = value;
-    formula->activity[var] += 1.0; // 更新VSIDS活动度
-    
-    return 1;
-}
-
-void simplify_formula(Formula* formula) {
-    Clause* current = formula->clauses;
-    while (current != NULL) {
-        if (!current->marked) {
-            int satisfied = 0;
-            
-            for (int i = 0; i < current->length; i++) {
-                Literal lit = current->literals[i];
-                int var = abs(lit);
-                int sign = lit > 0 ? 1 : -1;
-                
-                if (formula->assignment[var] == sign) {
-                    satisfied = 1;
-                    break;
-                }
-            }
-            
-            if (satisfied) {
-                current->marked = 1;
-            }
-        }
-        current = current->next;
-    }
-}
-
-int is_empty_formula(Formula* formula) {
-    Clause* current = formula->clauses;
-    while (current != NULL) {
-        if (!current->marked) {
-            return 0;
-        }
-        current = current->next;
-    }
-    return 1;
-}
-
-
-// VSIDS分支策略
-int choose_branch_variable(Formula* formula) {
-    double max_score = -1;
-    int best_var = 0;
-    
-    for (int i = 1; i <= formula->var_count; i++) {
-        if (formula->assignment[i] == 0) { // 未赋值的变元
-            if (formula->activity[i] > max_score) {
-                max_score = formula->activity[i];
-                best_var = i;
-            }
-        }
-    }
-    
-    // 衰减活动度
-    for (int i = 1; i <= formula->var_count; i++) {
-        formula->activity[i] *= 0.95;
-    }
-    
-    return best_var;
 }
 

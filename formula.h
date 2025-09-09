@@ -41,35 +41,34 @@ typedef struct {
     int marked_count;
 } FormulaState;
 
-FormulaState* save_formula_state(Formula* formula);
 
+
+//--------------函数声明--------------
+
+
+//dpll算法核心
+int dpll(Formula* formula);
+int unit_propagation(Formula* formula);
+int assign_literal(Formula* formula, Literal literal);
+int choose_branch_variable(Formula* formula);
+//状态存，取，释放
+FormulaState* save_formula_state(Formula* formula);
 void restore_formula_state(Formula* formula, FormulaState* state);
 void free_formula_state(FormulaState* state);
-
-// 函数声明
-int unit_propagation(Formula* formula);
+//cnf文件解析函数
 Formula* create_formula(int var_count);
 void destroy_formula(Formula* formula);
 Clause* create_clause();
 void add_literal(Clause* clause, Literal literal);
 void add_clause(Formula* formula, Clause* clause);
 Formula* parse_cnf(const char* filename);
-int dpll(Formula* formula);
-int has_unit_clause(Formula* formula);
-Literal find_unit_clause(Formula* formula);
-int assign_literal(Formula* formula, Literal literal);
-void simplify_formula(Formula* formula);
-int is_empty_formula(Formula* formula);
-int has_empty_clause(Formula* formula);
-int choose_branch_variable(Formula* formula);
-void backtrack(Formula* formula, int level);
-void init_watch(Formula* formula);
-void add_watch(Formula* formula, Clause* clause, Literal literal);
+//数独解决函数
 int encode_sudoku_var(int i, int j, int k);
 void decode_sudoku_var(int var, int* i, int* j, int* k);
 Formula* sudoku_to_formula(Sudoku* sudoku, int is_percent);
 void print_sudoku(Sudoku* sudoku);
 Sudoku* read_sudoku(const char* filename);
+//结果保存
 void save_result(const char* filename, int result, Formula* formula, double time_ms);
 
 #endif
